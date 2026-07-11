@@ -202,6 +202,7 @@ void ntripTask(void*) {
   for (;;) {
     esp_task_wdt_reset();
     g_link.wifiUp = (WiFi.status() == WL_CONNECTED);
+    g_link.wifiRssi = g_link.wifiUp ? (int8_t)WiFi.RSSI() : 0;  // for the OLED NTRIP page
 
     switch (state) {
       case NtripState::WifiConnecting:

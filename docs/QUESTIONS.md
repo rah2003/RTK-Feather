@@ -42,11 +42,14 @@ gitignored `firmware/huzzah32/rover/secrets.h` for bench convenience — never
 committed, see `secrets.example.h`). (c) **same caster**:
 `acorn-gnss.net:2101`, mount `VRS_SouthCentral_RTCM3`/`MS_RTCM3`.
 
-## 2. ❓ OLED FeatherWing variant on hand
+## 2. ✅ OLED FeatherWing variant — 128×32 SSD1306 (#2900)
 
-128×32 (SSD1306, product #2900) or 128×64 (SH1107, product #4650)?
-Driver library, page layouts, and button behavior differ. A photo or the
-product number on the silk/bag resolves it.
+Answered 2026-07-11. Implemented: Adafruit_SSD1306 + Adafruit_GFX (pinned in
+`platformio.ini`), addr 0x3C, four button-cycled pages sized to the panel's
+21-col × 4-row text budget (`firmware/huzzah32/rover/display.cpp`), plus a
+button/display test screen in the bring-up sketch. Button GPIOs (A=15, B=32,
+C=14) verified against Adafruit's own `OLED_featherwing.ino` example's
+`#elif defined(ESP32)` block.
 
 ## 3. 📄 simpleRTK2B Lite I2C pads → Topology A vs B
 

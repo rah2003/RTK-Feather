@@ -41,8 +41,9 @@ struct ButtonState {
 };
 
 ButtonState btnA, btnB, btnC;
-int currentPage = 0;
-constexpr int kNumPages = 4;  // fix / NTRIP / logging / BLE -- project brief §3.5
+// Written only by uiTask, read by display.cpp (loop task, same core): a torn read of an
+// int can't happen on this architecture, so no lock.
+volatile int currentPage = 0;
 
 void poll(ButtonState& b, int pin) {
   bool raw = digitalRead(pin) == LOW;  // all three read LOW when pressed
@@ -95,8 +96,8 @@ void uiTask(void*) {
 
     // A short-press (released before its long-press/combo threshold fired): cycle page.
     if (prevA && !btnA.stable && !btnA.longFired && !btnA.sawCombo) {
-      currentPage = (currentPage + 1) % kNumPages;
-      Serial.printf("[ui] page -> %d\n", currentPage);
+      currentPage = (currentPage + 1) % kUiNumPages;
+      Serial.printf("[ui] page -> %d\n", (int)currentPage);
     }
     prevA = btnA.stable;
 
@@ -109,3 +110,5 @@ void uiTask(void*) {
 void uiTaskStart() {
   xTaskCreatePinnedToCore(uiTask, "ui", 3072, nullptr, 1, nullptr, 1 /* core 1 */);
 }
+
+int uiCurrentPage() { return currentPage; }

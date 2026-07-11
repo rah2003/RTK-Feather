@@ -10,9 +10,12 @@ constexpr int PIN_LED_RED = 13;
 constexpr int PIN_I2C_SDA = 23;
 constexpr int PIN_I2C_SCL = 22;
 
-// OLED Wing buttons. A=GPIO15 is the MTDO strapping pin -- don't hold through a reset.
-// B=GPIO32 has a 100k onboard pullup (INPUT_PULLUP is redundant but harmless). All three
-// read LOW when pressed.
+// OLED Wing buttons -- verified 2026-07-11 against Adafruit's own FeatherWing example
+// (Adafruit_SSD1306/examples/OLED_featherwing/OLED_featherwing.ino: `#elif defined(ESP32)`
+// block defines BUTTON_A 15 / BUTTON_B 32 / BUTTON_C 14; the "9/6/5" numbers seen in the
+// guide are the same physical Wing positions as labeled on AVR/M0-class Feathers).
+// A=GPIO15 is the MTDO strapping pin -- don't hold through a reset. B=GPIO32 has a 100k
+// onboard pullup (INPUT_PULLUP is redundant but harmless). All three read LOW when pressed.
 constexpr int PIN_BUTTON_A = 15;
 constexpr int PIN_BUTTON_B = 32;
 constexpr int PIN_BUTTON_C = 14;

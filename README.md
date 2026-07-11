@@ -12,7 +12,7 @@ start on the Metro build, not a fork.
 | Radio/bridge MCU | Adafruit HUZZAH32 Feather (ESP32-WROOM) — WiFi/NTRIP, BLE NUS, OLED UI |
 | Logger MCU | Adafruit Feather M0 Adalogger (SAMD21) — RAWX logging to microSD |
 | GNSS | ArduSimple simpleRTK2B Lite (u-blox ZED-F9P) |
-| Display | Adafruit OLED FeatherWing (variant TBC: 128×32 SSD1306 or 128×64 SH1107) |
+| Display | Adafruit OLED FeatherWing 128×32 SSD1306 (#2900, I2C 0x3C) |
 | Phone | iPhone + SW Maps over BLE NUS (secondary priority) |
 
 Hard constraints:
@@ -45,7 +45,7 @@ firmware/
   huzzah32/
     bringup/                  Phase 1 bench sketch: LED/I2C-scan/button/NVS + fake NMEA
     rover/                    Phase 2 Rover firmware (NTRIP -> RTCM3 -> F9P UART1, status
-                               link, buttons, OLED stub) -- ported/adapted from the Metro
+                               link, buttons, 128x32 OLED pages) -- ported/adapted from the Metro
                                codebase (rah2003/SWMaps-propertylines); see file headers for
                                per-file adaptation notes. secrets.example.h -> copy to
                                secrets.h (gitignored) for bench credential convenience.
@@ -63,8 +63,8 @@ platformio.ini                Four environments: {huzzah32,adalogger_m0}-{bringu
 - [x] Hardware verification pack (docs/) — **verify wiring against these
       documents and current vendor docs before powering anything**
 - [~] Section 10 clarifying questions — caster/WiFi (Q1, Q5-equivalent),
-      Topology B (Q3), BLE-off-for-v1 (Q4), Rover-first (Q3-equivalent) are
-      answered (see `docs/QUESTIONS.md`); Q2 (OLED variant), Q6-Q10, A-C
+      Q2 (OLED: 128×32 SSD1306 #2900), Topology B (Q3), BLE-off-for-v1 (Q4),
+      Rover-first are answered (see `docs/QUESTIONS.md`); Q6-Q10, A-C
       remain open
 - [x] Phase 1: per-board bring-up sketches (`firmware/{huzzah32,adalogger_m0}/bringup/`)
       — scaffolding in, not yet run on real hardware
@@ -78,9 +78,11 @@ platformio.ini                Four environments: {huzzah32,adalogger_m0}-{bringu
       link (time sync + log start/stop + safe shutdown), passive UBX tap ->
       time-named .ubx on SD, button gestures (matches the already-drafted
       `field-guide.md` scheme). BLE compiled out (`FEATURE_BLE=0`, no NimBLE
-      dependency). OLED rendering is a stub (prints status to serial)
-      pending Q2. Fix-quality CSV logging (brief §9 suggestion) is NOT
-      implemented — flagged, not silently built.
+      dependency). OLED implemented for the 128×32 SSD1306 Wing: four
+      button-cycled pages sized to the 21×4 text grid, correction-age
+      inverse-video flash at >10 s, headless fallback if the Wing is absent.
+      Fix-quality CSV logging (brief §9 suggestion) is NOT implemented —
+      flagged, not silently built.
 - [ ] Phase 3: Base mode
 - [ ] Phase 4: polish (OLED menus, BLE toggle)
 

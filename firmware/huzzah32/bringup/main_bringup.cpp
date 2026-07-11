@@ -1,3 +1,5 @@
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 #include <Arduino.h>
 #include <Preferences.h>
 #include <Wire.h>
@@ -7,12 +9,15 @@
 
 // Phase 1 bring-up sketch (docs/test-plan.md Stage 1 item 1) + fake NMEA source (item 2
 // onward). No WiFi/NTRIP/BLE here yet -- this only proves the board, the stacked OLED
-// Wing's I2C bus, the three buttons, and NVS survive a cycle, and it stands in for the F9P
-// on Serial1 so later stages (NTRIP soak, BLE bridge) have something to consume.
+// Wing's I2C bus and panel (128x32 SSD1306, Q2 answered), the three buttons, and NVS
+// survive a cycle, and it stands in for the F9P on Serial1 so later stages (NTRIP soak,
+// BLE bridge) have something to consume.
 // FAKE_NMEA_SOURCE is set by platformio.ini (default 1: no F9P on the bench yet).
 
 FakeNmeaSource fakeNmea;
 Preferences prefs;
+Adafruit_SSD1306 oled(128, 32, &Wire);  // constructor per Adafruit's OLED_featherwing example
+bool oledUp = false;
 
 static void i2cScan() {
   Serial.println(F("[i2c] scanning..."));
@@ -74,6 +79,11 @@ void setup() {
 
   i2cScan();
   nvsRoundTrip();
+
+  // Display test (checklists.md: "run the matching Adafruit example; confirm buttons
+  // register") -- shows live button states so the whole checklist item is this one sketch.
+  oledUp = oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  Serial.printf("[oled] SSD1306 128x32 %s\n", oledUp ? "up" : "NOT FOUND");
 }
 
 void loop() {
@@ -85,6 +95,34 @@ void loop() {
   }
 
   readButtons();
+
+  // OLED test screen at 5 Hz: title + live button states (pressed = inverse video).
+  static uint32_t lastOled = 0;
+  if (oledUp && now - lastOled >= 200) {
+    lastOled = now;
+    oled.clearDisplay();
+    oled.setTextSize(1);
+    oled.setTextColor(SSD1306_WHITE);
+    oled.setTextWrap(false);
+    oled.setCursor(0, 0);
+    oled.print(F("RTK-Feather bring-up"));
+    oled.setCursor(0, 8);
+    oled.print(F("press A / B / C:"));
+    const struct { const char* name; int pin; } btns[] = {
+        {"A", PIN_BUTTON_A}, {"B", PIN_BUTTON_B}, {"C", PIN_BUTTON_C}};
+    for (int i = 0; i < 3; i++) {
+      int x = 20 + i * 36;
+      bool pressed = digitalRead(btns[i].pin) == LOW;
+      if (pressed) {
+        oled.fillRect(x - 3, 19, 12, 11, SSD1306_WHITE);
+        oled.setTextColor(SSD1306_BLACK);
+      }
+      oled.setCursor(x, 21);
+      oled.print(btns[i].name);
+      oled.setTextColor(SSD1306_WHITE);
+    }
+    oled.display();
+  }
 
 #if FAKE_NMEA_SOURCE
   fakeNmea.tick();  // writes to Serial1 (consumers) and Serial (bench visibility) itself

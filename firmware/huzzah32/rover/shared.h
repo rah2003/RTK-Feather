@@ -39,6 +39,7 @@ struct LinkStatus {
   bool ntripConnected = false;
   uint32_t lastRtcmMs = 0;  // last time RTCM bytes arrived from the caster
   uint32_t rtcmBytes = 0;
+  int8_t wifiRssi = 0;  // dBm, published by ntripTask (the WiFi owner) for the OLED; 0 = unknown
 };
 
 // M0's self-reported state, received over the status link (common/status_link.h MSTA
