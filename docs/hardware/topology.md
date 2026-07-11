@@ -16,8 +16,25 @@ UART2/XBee (reserved for a future radio). Two candidate topologies:
   NMEA+UBX stream — which is PaulZC's original `RAWX_Logger_F9P` design on
   its original board.
 
-**Verification result:** *(pending — see `QUESTIONS.md` Q3; resolved from
-ArduSimple's current simpleRTK2B Lite documentation in `wiring.md`)*
+**Verification result: Topology B selected.** ArduSimple's Lite
+documentation (hookup guide, datasheet, product page) exposes **no I2C
+pads** — the only documented special-function pins are TIMEPULSE, RTK_STAT,
+and GEOFENCE
+([hookup guide](https://www.ardusimple.com/simplertk2blite-hookup-guide/)),
+and in an ArduSimple support thread the vendor's own workaround for pad
+access was soldering to an LED — there is no pad field to speak of.
+Additionally, the Lite's "USB" is an FTDI adapter onto **UART1** via the
+bottom XBee header (no native F9P USB), so UART1 is genuinely the only
+data door for the Feathers. A physical photo-check of the board is still
+requested (`QUESTIONS.md` Q3) since the doc sweep ran through search
+extraction. Full wiring in `wiring.md`.
+
+*(Repo correction vs. the project brief: PaulZC's UART and I2C logger
+sketches both live in
+[PaulZC/F9P_RAWX_Logger](https://github.com/PaulZC/F9P_RAWX_Logger) —
+`Arduino/RAWX_Logger_F9P/` and `Arduino/RAWX_Logger_F9P_I2C/` — not in two
+separate repos; a July-2024 refresh of the I2C variant lives in
+[PaulZC/ZED-F9P_FeatherWing_USB](https://github.com/PaulZC/ZED-F9P_FeatherWing_USB).)*
 
 ### Tap discipline (Topology B) — read twice
 

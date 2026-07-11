@@ -27,10 +27,14 @@ product number on the silk/bag resolves it.
 
 ## 3. 📄 simpleRTK2B Lite I2C pads → Topology A vs B
 
-Being resolved from ArduSimple's current hookup guide (see
-`hardware/wiring.md`). **Please still photo-check the physical board** for
-labeled SDA/SCL pads — ArduSimple has revised boards before, and the doc
-answer must match the unit on your bench.
+**Resolved from docs: no I2C pads → Topology B (shared-listener UART
+tap).** ArduSimple's hookup guide, datasheet, and product page document
+only TIMEPULSE, RTK_STAT, and GEOFENCE as special-function pins, and the
+Lite's "USB" turns out to be an FTDI bridge onto UART1 itself (details and
+citations in `hardware/wiring.md` and `hardware/topology.md`).
+**Please still photo-check the physical board** for any labeled SDA/SCL
+pad — the doc sweep was done via search extraction and a board revision
+could differ from the indexed docs.
 
 ## 4. ❓ BLE to SW Maps in v1?
 
