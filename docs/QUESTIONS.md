@@ -4,20 +4,43 @@ The brief gates all firmware on these. Items 1–5 must not be guessed.
 Status legend: ❓ needs your answer · 📄 resolved from vendor docs (confirm) ·
 ✅ answered.
 
-## 1. ❓ Prior Metro-project codebase access
+## 1. ❓ Prior Metro-project codebase — found; import mechanism still open
 
-This repository (`rah2003/RTK-Feather`) is **empty** — no branches, no
-commits — and the referenced Claude Code session
-(`session_01W7J4gwxntpHWWW3kmP5T17`) is not accessible from this session:
-sessions don't share filesystems, and no Metro repo is attached here.
+**Resolved (2026-07-11): the Metro codebase exists**, per the owner's own
+check rule ("if it's not in the SW Maps GitHub, it doesn't exist"). It's at
+[`rah2003/SWMaps-propertylines`](https://github.com/rah2003/SWMaps-propertylines),
+branch `claude/esp32-rtk-bridge-firmware-yokgan` (confirmed via the
+unauthenticated GitHub API — no auth prompt needed, repo is public).
+Session `session_01W7J4gwxntpHWWW3kmP5T17` itself remains inaccessible from
+here (as a separate prior session on this same repo also found), but that no
+longer matters — the *code* is reachable directly.
 
-**Needed:** where does the Metro project code/design live? Options:
-(a) it's in another GitHub repo — name it and I'll request it be added to
-this session; (b) it exists only in that session — resume that session and
-push its work to a repo first; (c) it produced no code yet — then this repo
-*becomes* the shared-library origin and the Metro build will consume it
-later (my recommendation if (a)/(b) aren't quick). Also confirm:
-import-as-library vs copy-modules-in.
+**What's there:** Phases 1–3 complete (bring-up, Rover: NTRIP + BLE NUS +
+RAWX/CSV logging, Base: survey-in/fixed + RTCM3-on-UART2 config-only), never
+run on real hardware. `docs/00-questions-and-assumptions.md` in that repo
+shows the owner answered its own Section-10-equivalent questions on
+2026-07-08 — including NTRIP caster (`acorn-gnss.net:2101`, mounts
+`VRS_SouthCentral_RTCM3`/`MS_RTCM3`; credentials themselves are **not** in
+that repo either), WiFi (iPhone hotspot), elevation mask (12°),
+constellations (GPS+GLO+GAL+BDS, SBAS/QZSS off). `firmware/src/rtkbridge/`
+has directly reusable pieces: `ringbuf.h` (lock-free SPSC byte ring, cross-
+core atomics), `settings.h` (NVS/SD-config schema), `gnss_config.h` (takes
+an abstract `DevUBLOXGNSS&` — the same transport already works for I2C or
+UART, which lines up with this repo's Topology A/B question), `ntrip_client`,
+`shared.h` (ring-buffer ownership + status-snapshot pattern).
+
+**Decided (2026-07-11):** (a) import mechanism = **ported/adapted copy** into
+`firmware/{common,huzzah32/rover}/`, not a submodule — Topology B and the
+two-MCU split diverge enough from Metro's single-MCU architecture that a
+live dependency would fight the adaptation constantly. (b) **inherit Metro's
+answered defaults wholesale**: elevation mask 12°, GPS+GLO+GAL+BDS
+constellations, config via NVS + serial menu (SD `/config.txt` doesn't port
+directly — the HUZZAH32 has no onboard SD, only the M0 does, and the M0 isn't
+the settings owner; see `firmware/huzzah32/rover/settings.h`'s header
+comment). Real credentials still come from you directly (serial menu, or a
+gitignored `firmware/huzzah32/rover/secrets.h` for bench convenience — never
+committed, see `secrets.example.h`). (c) **same caster**:
+`acorn-gnss.net:2101`, mount `VRS_SouthCentral_RTCM3`/`MS_RTCM3`.
 
 ## 2. ❓ OLED FeatherWing variant on hand
 
@@ -36,24 +59,25 @@ citations in `hardware/wiring.md` and `hardware/topology.md`).
 pad — the doc sweep was done via search extraction and a board revision
 could differ from the indexed docs.
 
-## 4. ❓ BLE to SW Maps in v1?
+## 4. ✅ BLE to SW Maps in v1? — WiFi-only for v1
 
-Is BLE NUS → SW Maps wanted in this interim build's v1, or is WiFi-only
-acceptable with BLE added in Phase 4? (Firmware will carry a compile-time
-flag to build BLE fully out either way.)
+Decided 2026-07-11: BLE deferred to Phase 4. `FEATURE_BLE=0` in
+`[env:huzzah32-rover]`; `firmware/huzzah32/rover/ble_bridge.cpp` is a stub
+that `#error`s if someone flips the flag without also adding the NimBLE
+dependency and porting Metro's `ble_bridge.cpp` — no silent half-build.
 
-## 5. ❓ NTRIP caster / WiFi details
+## 5. ✅ NTRIP caster / WiFi details — same as Metro
 
-Same caster, mountpoint, credentials, and WiFi source (phone hotspot?
-dedicated hotspot?) as answered for the Metro project — or different here?
-I don't have the Metro session's answers (see Q1), so please restate:
-caster host:port, mountpoint, auth, NTRIP v1 or v2, and the field WiFi
-plan.
+Decided 2026-07-11: `acorn-gnss.net:2101`, mounts
+`VRS_SouthCentral_RTCM3`/`MS_RTCM3`, WiFi via iPhone personal hotspot.
+Baked into `firmware/huzzah32/rover/settings.h` defaults (host/port/mount
+only — real username/password are never defaulted in code; see Q1 above).
 
-## 6. ❓ Base mode required for this interim device?
+## 6. ✅ Base mode required for this interim device? — Rover-only for v1
 
-Rover-only until the Metro build, or is Base (survey-in / fixed coords,
-RTCM on UART2 config-only) genuinely needed here?
+Decided 2026-07-11: Rover mode first. `FEATURE_BASE=0` in
+`[env:huzzah32-rover]`; `gnss_config.cpp` always forces `CFG-TMODE-MODE=0`
+(rover). Base mode is Phase 3.
 
 ## 7. ❓ Field power plan
 

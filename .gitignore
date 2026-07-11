@@ -1,0 +1,8 @@
+# Real credentials -- copy secrets.example.h to secrets.h and fill in real values locally.
+# Never commit secrets.h.
+firmware/huzzah32/rover/secrets.h
+
+# PlatformIO build artifacts
+.pio/
+.pioenvs/
+.piolibdeps/
