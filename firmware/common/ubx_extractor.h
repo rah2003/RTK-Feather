@@ -14,8 +14,13 @@
 // (unlike the ESP32 side's cross-core ring buffers).
 class UbxExtractor {
  public:
-  static constexpr size_t kMaxFrame = 3072;   // > worst-case RAWX frame, ~2.3 KiB (topology.md)
-  static constexpr size_t kRingSize = 16384;  // matches topology.md's 16 KiB ring sizing
+  static constexpr size_t kMaxFrame = 3072;  // > worst-case RAWX frame, ~2.3 KiB (topology.md)
+  // 12 KiB, down from the original 16 KiB: the 4 KiB was re-spent on the SAMD21 core's UART
+  // buffers (-DSERIAL_BUFFER_SIZE=1024 in platformio.ini) after review found the 350 B core
+  // default was the true loss point during SD write stalls -- this ring only ever sees bytes
+  // that already survived the UART buffer. 12 KiB still absorbs ~1.07 s at 11,520 B/s,
+  // ~4.3x the budgeted 250 ms worst-case SD stall (topology.md math).
+  static constexpr size_t kRingSize = 12288;
 
   void feed(uint8_t b);
 
@@ -26,6 +31,7 @@ class UbxExtractor {
   size_t ringHighWater() const { return _ringHighWater; }
   uint32_t framesExtracted() const { return _framesExtracted; }
   uint32_t checksumErrors() const { return _checksumErrors; }
+  uint32_t framesDropped() const { return _framesDropped; }  // whole frames dropped, ring full
 
  private:
   enum class State { SYNC1, SYNC2, CLASS, ID, LEN1, LEN2, PAYLOAD, CK_A, CK_B };
@@ -42,6 +48,7 @@ class UbxExtractor {
 
   uint32_t _framesExtracted = 0;
   uint32_t _checksumErrors = 0;
+  uint32_t _framesDropped = 0;
 
   void resetParse();
   void pushFrameToRing();

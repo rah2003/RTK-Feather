@@ -178,9 +178,9 @@ void loop() {
   if (now - lastStatusMs >= 2000) {
     lastStatusMs = now;
     // Same 80-byte printf-buffer reason as closeLogSafely(): keep each call short.
-    Serial.printf("[ubx] frames=%lu ckErr=%lu written=%lu\n",
+    Serial.printf("[ubx] frames=%lu ckErr=%lu drop=%lu written=%lu\n",
                   (unsigned long)ubx.framesExtracted(), (unsigned long)ubx.checksumErrors(),
-                  (unsigned long)bytesWritten);
+                  (unsigned long)ubx.framesDropped(), (unsigned long)bytesWritten);
     unsigned pct = (unsigned)(100u * ubx.ringHighWater() / UbxExtractor::kRingSize);
     Serial.printf("[ubx] ring hwm=%u/%u (%u%%)\n", (unsigned)ubx.ringHighWater(),
                   (unsigned)UbxExtractor::kRingSize, pct);

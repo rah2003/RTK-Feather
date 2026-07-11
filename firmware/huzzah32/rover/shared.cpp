@@ -39,6 +39,9 @@ M0Status statusGetM0() {
   xSemaphoreTake(s_m0Mutex, portMAX_DELAY);
   out = s_m0;
   xSemaphoreGive(s_m0Mutex);
+  // Derived, not latched (see shared.h): the link is only "up" if the M0's ~1 Hz status
+  // broadcast has been heard recently.
+  out.linkUp = out.lastMsgMs != 0 && (millis() - out.lastMsgMs) < 5000;
   return out;
 }
 

@@ -35,6 +35,9 @@ struct ButtonState {
   uint32_t lastChangeMs = 0;
   uint32_t pressedAtMs = 0;
   bool longFired = false;  // a long/combo gesture already fired for this press
+  bool sawCombo = false;   // this press co-held with the combo partner at some point --
+                           // poisons the release-time short-press action (an ABORTED A+C
+                           // shutdown must not fire a page cycle on the way out)
 };
 
 ButtonState btnA, btnB, btnC;
@@ -53,6 +56,7 @@ void poll(ButtonState& b, int pin) {
     if (b.stable) {
       b.pressedAtMs = now;
       b.longFired = false;
+      b.sawCombo = false;
     }
   }
 }
@@ -71,6 +75,7 @@ void uiTask(void*) {
     uint32_t now = millis();
 
     if (btnA.stable && btnC.stable) {
+      btnA.sawCombo = btnC.sawCombo = true;  // even if released early -- see ButtonState
       // Shutdown combo: fires once per co-held press, timed from whichever of the two was
       // pressed last (so it always means "both have now been down this long").
       uint32_t heldSince = max(btnA.pressedAtMs, btnC.pressedAtMs);
@@ -89,7 +94,7 @@ void uiTask(void*) {
     }
 
     // A short-press (released before its long-press/combo threshold fired): cycle page.
-    if (prevA && !btnA.stable && !btnA.longFired) {
+    if (prevA && !btnA.stable && !btnA.longFired && !btnA.sawCombo) {
       currentPage = (currentPage + 1) % kNumPages;
       Serial.printf("[ui] page -> %d\n", currentPage);
     }

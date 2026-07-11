@@ -45,8 +45,7 @@ void statusLinkTask(void*) {
       if (lineIn.feed(b, lineBuf, sizeof(lineBuf))) {
         M0StatusMsg msg;
         if (parseM0Status(lineBuf, msg)) {
-          M0Status s;
-          s.linkUp = true;
+          M0Status s;  // linkUp is derived from lastMsgMs at read time (shared.cpp)
           s.logging = msg.logging;
           strncpy(s.fileName, msg.fileName, sizeof(s.fileName) - 1);
           s.fileName[sizeof(s.fileName) - 1] = '\0';

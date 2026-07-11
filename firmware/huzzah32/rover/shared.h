@@ -42,11 +42,13 @@ struct LinkStatus {
 };
 
 // M0's self-reported state, received over the status link (common/status_link.h MSTA
-// message). Written by status_link_task only.
+// message). Written by status_link_task only. linkUp is DERIVED at read time in
+// statusGetM0() from lastMsgMs (stale after 5 s of silence) -- a latched flag would show
+// "link up" forever after the M0 died mid-session.
 struct M0Status {
-  bool linkUp = false;  // have we heard from the M0 recently at all?
+  bool linkUp = false;
   bool logging = false;
-  char fileName[32] = {0};
+  char fileName[40] = {0};  // sized to match the M0's filename buffer (status_link.h)
   uint32_t bytesWritten = 0;
   uint32_t sdFreeKB = 0;
   uint32_t lastMsgMs = 0;

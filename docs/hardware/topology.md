@@ -98,26 +98,41 @@ write latency of 250 ms (cheap card, FAT housekeeping).
 
     Required absorption = 11,520 B/s × 0.25 s ≈ 2.9 KiB
 
-A **16 KiB ring buffer** (PaulZC-sized) gives ≈ 1.4 s of absorption — ~5×
-the worst stall.
+**Two-stage buffering (revised after code review, 2026-07-11).** The
+original single-number analysis ("16 KiB ring absorbs the stall") missed
+that the ring only sees bytes that already survived the *first* stage: while
+`logFile.write()` is stalled, the superloop is blocked and the **SERCOM UART
+RX interrupt buffer is the only absorber** — and the Adafruit core's default
+is just 350 B ≈ 30 ms. The revised budget:
+
+1. **Stage 1 — UART RX ISR buffer: 1024 B ≈ 89 ms** of full-tap stream
+   (`-DSERIAL_BUFFER_SIZE=1024` in `platformio.ini`). This must ride out the
+   longest single `write()` stall. It can't be made bigger cheaply: the
+   define is global and each `Uart` object carries an RX *and* TX ring at
+   this size, ×3 instances (Serial1, Serial2, core-hidden Serial5) — 2048
+   measured at 98 % RAM. Mitigations that shrink the stall instead: files
+   are **pre-allocated contiguous** (32 MiB, trimmed at close) so writes
+   skip FAT housekeeping, and the drain loop writes **at most one 512 B
+   chunk per loop pass** so the UART is serviced between chunks. The Stage 2
+   slow-card bench test (test-plan.md) is the arbiter of whether 89 ms
+   covers the real card's latency tail — watch `ckErr` (UART overflow shows
+   up as checksum errors) and `framesDropped`.
+2. **Stage 2 — 12 KiB UBX ring** (`UbxExtractor`, down from the original
+   16 KiB to pay for stage 1): absorbs ≈ 1.07 s of *extracted* backlog,
+   ~4.3× the budgeted 250 ms stall. Frames that don't fit are dropped
+   whole and counted (`framesDropped`) — never split.
+
 Static allocation only; no `String`. Writes to SD in 512 B-aligned chunks.
 
-At 230400 the same 16 KiB buffer still gives ~0.7 s absorption (≥ 2.8×
-worst stall) — acceptable, but 115200 is the friendlier default.
-
-**Measured (2026-07-11, `adalogger_m0-rover` actual build,
-`arm-none-eabi-nm` on the ELF):** static RAM = 26,136 B of 32,768 (79.8 %),
-leaving **~6.6 KiB** for stack + heap — tighter than this section's original
-"> 8 KiB free" estimate, which had missed three real costs: the extractor's
-3 KiB frame-assembly buffer (`UbxExtractor` totals 19.5 KiB, not 16), ~1.4 KiB
-of native-USB CDC buffers, and the Adafruit core's hidden `Serial5` (764 B;
-`checklists.md` already noted SERCOM5 is claimed — it costs RAM too). SdFat
-is only ~1.2 KiB (built FAT-only via `-DSDFAT_FILE_TYPE=1`; exFAT support
-turned out to cost flash, not RAM). 6.6 KiB is adequate for this firmware's
-no-malloc superloop (shallow call depth, worst stack frames are
-`snprintf`/`sscanf` at a few hundred bytes), but treat it as the budget
-floor: any new buffer must come out of the 16 KiB ring (12 KiB still gives
-~4× the worst stall) rather than out of stack headroom.
+**Measured (2026-07-11, post-review build, `arm-none-eabi-nm` on the ELF):**
+static RAM = 26,088 B of 32,768 (79.6 %), leaving **~6.7 KiB** for stack +
+heap. The original "> 8 KiB free" estimate had missed the extractor's 3 KiB
+frame-assembly buffer, ~1.4 KiB of native-USB CDC buffers, and the core's
+hidden `Serial5` (which also pays the SERIAL_BUFFER_SIZE tax — dead weight,
+but unavoidable without patching the core). SdFat is only ~1.2 KiB (built
+FAT-only via `-DSDFAT_FILE_TYPE=1`; exFAT support costs flash, not RAM).
+6.7 KiB is adequate for this no-malloc superloop; treat it as the budget
+floor — any new buffer must come out of the 12 KiB ring, not stack headroom.
 
 ## OLED placement
 

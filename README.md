@@ -68,11 +68,12 @@ platformio.ini                Four environments: {huzzah32,adalogger_m0}-{bringu
       remain open
 - [x] Phase 1: per-board bring-up sketches (`firmware/{huzzah32,adalogger_m0}/bringup/`)
       — scaffolding in, not yet run on real hardware
-- [~] Phase 2: Rover firmware written and **compiling clean** (PlatformIO
-      6.1.19, 2026-07-11: `huzzah32-rover` RAM 17.0 % / flash 65.9 %;
-      `adalogger_m0-rover` RAM 79.8 % / flash 11.4 % — see
-      `docs/hardware/topology.md` "Measured" note on the M0's ~6.6 KiB
-      stack/heap headroom). **Not yet run on real hardware.** NTRIP -> RTCM3
+- [~] Phase 2: Rover firmware written, **code-reviewed** (4 critical
+      logging-path fixes applied — see `docs/hardware/topology.md`
+      "Two-stage buffering"), and **compiling clean** (PlatformIO 6.1.19,
+      2026-07-11: `huzzah32-rover` RAM 17.0 % / flash 65.8 %;
+      `adalogger_m0-rover` RAM 79.6 % / flash 12.5 %, ~6.7 KiB stack/heap
+      headroom). **Not yet run on real hardware.** NTRIP -> RTCM3
       -> F9P UART1, GNSS config (Topology B, UART1-only, 115200), status
       link (time sync + log start/stop + safe shutdown), passive UBX tap ->
       time-named .ubx on SD, button gestures (matches the already-drafted
@@ -107,7 +108,11 @@ per-file compile list in the build log). Still unverified:
    machine has no hardware-in-the-loop test yet. Phase 1's bring-up sketches
    exercise the pieces individually (fake NMEA, USB-replayed UBX); the full
    Rover firmware end-to-end is bench work (test-plan.md Stages 1-4).
-2. M0 RAM headroom is ~6.6 KiB for stack + heap (measured; see
+2. M0 RAM headroom is ~6.7 KiB for stack + heap (measured; see
    `docs/hardware/topology.md`) — fine on paper for this no-malloc
    superloop, but confirm no stack overflow during the Stage 2 burst/latency
    test before trusting it in the field.
+3. The UART-stage stall budget (1024 B ≈ 89 ms; `topology.md` "Two-stage
+   buffering") assumes pre-allocated contiguous files keep SD write spikes
+   short. The Stage 2 slow-card test decides whether that holds for the
+   actual card — rising `ckErr`/`framesDropped` counters are the tell.

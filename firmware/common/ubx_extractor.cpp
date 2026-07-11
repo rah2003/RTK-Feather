@@ -82,6 +82,15 @@ void UbxExtractor::feed(uint8_t b) {
 void UbxExtractor::pushFrameToRing() {
   // Whole frame, sync-to-checksum, so what lands on SD is byte-identical to the source
   // (test-plan.md Stage 2 item 2): B5 62 + class/id/len/payload + ckA/ckB.
+  //
+  // All-or-nothing: a frame that doesn't fully fit is dropped WHOLE and counted. Pushing a
+  // partial frame would land a truncated frame on SD, desyncing downstream RINEX conversion
+  // -- one cleanly missing epoch is recoverable, a corrupted stream is not.
+  size_t needed = 2 + _frameLen + 2;
+  if (kRingSize - _ringUsed < needed) {
+    _framesDropped++;
+    return;
+  }
   uint8_t header[2] = {0xB5, 0x62};
   ringPush(header, 2);
   ringPush(_frame, _frameLen);
@@ -90,8 +99,8 @@ void UbxExtractor::pushFrameToRing() {
 }
 
 void UbxExtractor::ringPush(const uint8_t* data, size_t len) {
+  // Space is guaranteed by pushFrameToRing()'s whole-frame reservation.
   for (size_t i = 0; i < len; i++) {
-    if (_ringUsed >= kRingSize) break;  // full: drop rather than corrupt; caller must drain faster
     _ring[_ringHead] = data[i];
     _ringHead = (_ringHead + 1) % kRingSize;
     _ringUsed++;

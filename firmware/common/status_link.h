@@ -36,7 +36,8 @@ struct TimeSyncMsg {
 
 struct M0StatusMsg {
   bool logging;
-  char fileName[32];
+  char fileName[40];  // matches the M0's own filename buffer -- a longer name would make the
+                      // sscanf in parseM0Status fail silently and drop the whole status line
   uint32_t bytesWritten;
   uint32_t sdFreeKB;
 };

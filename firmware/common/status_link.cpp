@@ -109,9 +109,9 @@ bool parseM0Status(const char* lineIn, M0StatusMsg& out) {
   copyStr(line, sizeof(line), lineIn);
   if (!verifyAndStrip(line)) return false;
   int logging = 0;
-  char fname[32];
+  char fname[40];
   unsigned long bw = 0, freeKB = 0;
-  if (sscanf(line, "$MSTA,%d,%31[^,],%lu,%lu", &logging, fname, &bw, &freeKB) != 4)
+  if (sscanf(line, "$MSTA,%d,%39[^,],%lu,%lu", &logging, fname, &bw, &freeKB) != 4)
     return false;
   out.logging = logging != 0;
   copyStr(out.fileName, sizeof(out.fileName), fname);

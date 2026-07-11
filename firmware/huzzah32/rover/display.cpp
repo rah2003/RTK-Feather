@@ -33,8 +33,13 @@ void displayUpdate() {
   GnssStatus gs = statusGetGnss();
   M0Status m0 = statusGetM0();
   uint32_t age = correctionAgeMs();
+  char ageStr[16];
+  if (age == UINT32_MAX) {
+    strcpy(ageStr, "never");
+  } else {
+    snprintf(ageStr, sizeof(ageStr), "%.1fs", age / 1000.0f);
+  }
   Serial.printf("[status] fix=%u carr=%u sv=%u ntrip=%s corrAge=%s logging=%s file=%s\n",
-                gs.fixType, gs.carrSoln, gs.numSV, ntripStateName(),
-                age == UINT32_MAX ? "never" : (String(age / 1000.0f, 1) + "s").c_str(),
+                gs.fixType, gs.carrSoln, gs.numSV, ntripStateName(), ageStr,
                 m0.logging ? "on" : "off", m0.fileName[0] ? m0.fileName : "-");
 }
