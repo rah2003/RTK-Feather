@@ -99,12 +99,25 @@ write latency of 250 ms (cheap card, FAT housekeeping).
     Required absorption = 11,520 B/s × 0.25 s ≈ 2.9 KiB
 
 A **16 KiB ring buffer** (PaulZC-sized) gives ≈ 1.4 s of absorption — ~5×
-the worst stall. Remaining RAM: 32 − 16 (ring) − ~2.5 (SdFat + FAT cache)
-− ~1 (status link + parser state) − stack ≈ comfortably > 8 KiB free.
+the worst stall.
 Static allocation only; no `String`. Writes to SD in 512 B-aligned chunks.
 
 At 230400 the same 16 KiB buffer still gives ~0.7 s absorption (≥ 2.8×
 worst stall) — acceptable, but 115200 is the friendlier default.
+
+**Measured (2026-07-11, `adalogger_m0-rover` actual build,
+`arm-none-eabi-nm` on the ELF):** static RAM = 26,136 B of 32,768 (79.8 %),
+leaving **~6.6 KiB** for stack + heap — tighter than this section's original
+"> 8 KiB free" estimate, which had missed three real costs: the extractor's
+3 KiB frame-assembly buffer (`UbxExtractor` totals 19.5 KiB, not 16), ~1.4 KiB
+of native-USB CDC buffers, and the Adafruit core's hidden `Serial5` (764 B;
+`checklists.md` already noted SERCOM5 is claimed — it costs RAM too). SdFat
+is only ~1.2 KiB (built FAT-only via `-DSDFAT_FILE_TYPE=1`; exFAT support
+turned out to cost flash, not RAM). 6.6 KiB is adequate for this firmware's
+no-malloc superloop (shallow call depth, worst stack frames are
+`snprintf`/`sscanf` at a few hundred bytes), but treat it as the budget
+floor: any new buffer must come out of the 16 KiB ring (12 KiB still gives
+~4× the worst stall) rather than out of stack headroom.
 
 ## OLED placement
 

@@ -68,17 +68,18 @@ platformio.ini                Four environments: {huzzah32,adalogger_m0}-{bringu
       remain open
 - [x] Phase 1: per-board bring-up sketches (`firmware/{huzzah32,adalogger_m0}/bringup/`)
       — scaffolding in, not yet run on real hardware
-- [~] Phase 2: Rover firmware written (`firmware/{huzzah32,adalogger_m0}/rover/`)
-      — **compiles-on-paper only; not yet built or run on real hardware** (no
-      toolchain in this environment). NTRIP -> RTCM3 -> F9P UART1, GNSS
-      config (Topology B, UART1-only, 115200), status link (time sync + log
-      start/stop + safe shutdown), passive UBX tap -> time-named .ubx on SD,
-      button gestures (matches the already-drafted `field-guide.md` scheme).
-      BLE compiled out (`FEATURE_BLE=0`, no NimBLE dependency). OLED
-      rendering is a stub (prints status to serial) pending Q2. Fix-quality
-      CSV logging (brief §9 suggestion) is NOT implemented — flagged, not
-      silently built. **Needs a real `pio run` + hardware bring-up before
-      any of this is trustworthy — see "What's unverified" below.**
+- [~] Phase 2: Rover firmware written and **compiling clean** (PlatformIO
+      6.1.19, 2026-07-11: `huzzah32-rover` RAM 17.0 % / flash 65.9 %;
+      `adalogger_m0-rover` RAM 79.8 % / flash 11.4 % — see
+      `docs/hardware/topology.md` "Measured" note on the M0's ~6.6 KiB
+      stack/heap headroom). **Not yet run on real hardware.** NTRIP -> RTCM3
+      -> F9P UART1, GNSS config (Topology B, UART1-only, 115200), status
+      link (time sync + log start/stop + safe shutdown), passive UBX tap ->
+      time-named .ubx on SD, button gestures (matches the already-drafted
+      `field-guide.md` scheme). BLE compiled out (`FEATURE_BLE=0`, no NimBLE
+      dependency). OLED rendering is a stub (prints status to serial)
+      pending Q2. Fix-quality CSV logging (brief §9 suggestion) is NOT
+      implemented — flagged, not silently built.
 - [ ] Phase 3: Base mode
 - [ ] Phase 4: polish (OLED menus, BLE toggle)
 
@@ -97,15 +98,16 @@ turn). Each ported file's header comment says what changed and why.
 
 ## What's unverified
 
-Nothing in `firmware/*/rover/` has been compiled or run. Known risks worth
-checking first, in rough priority order:
-1. SparkFun u-blox GNSS v3 constant names (`UBLOX_CFG_*`) in `gnss_config.cpp`
-   are transcribed from the Metro project's code and cross-checked against
-   `docs/hardware/ucenter-config.md`'s independently researched key IDs, but
-   neither codebase has actually been built — a typo'd constant name would
-   only surface at compile time.
-2. `platformio.ini`'s `build_src_filter` patterns are hand-written against
-   the directory layout above, not tested against a real PlatformIO run.
-3. The button/status-link/logging state machine has no hardware-in-the-loop
-   test yet — Phase 1's bring-up sketches exercise the pieces individually
-   (fake NMEA, USB-replayed UBX) but not the full Rover firmware end-to-end.
+All four environments **compile clean** (PlatformIO 6.1.19, 2026-07-11),
+which retires the original compile-time risks: the `UBLOX_CFG_*` constant
+names in `gnss_config.cpp` resolved against SparkFun u-blox GNSS v3 3.1.14,
+and the `build_src_filter` patterns select the right files (verified by the
+per-file compile list in the build log). Still unverified:
+1. Nothing has run on real hardware — the button/status-link/logging state
+   machine has no hardware-in-the-loop test yet. Phase 1's bring-up sketches
+   exercise the pieces individually (fake NMEA, USB-replayed UBX); the full
+   Rover firmware end-to-end is bench work (test-plan.md Stages 1-4).
+2. M0 RAM headroom is ~6.6 KiB for stack + heap (measured; see
+   `docs/hardware/topology.md`) — fine on paper for this no-malloc
+   superloop, but confirm no stack overflow during the Stage 2 burst/latency
+   test before trusting it in the field.
